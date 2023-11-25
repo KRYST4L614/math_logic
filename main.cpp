@@ -2,12 +2,12 @@
 #include <fstream>
 #include <math.h>
 
-const std::size_t N = 9;			// кол-во объектов 
-const std::size_t M = 4;			// кол-во свойств
-const std::size_t ROW_LENGTH = sqrt(N);	// длина строки матрицы
-const std::size_t LOG_N = static_cast<int>(std::ceil(std::log2(N)));		// кол-во свойств
-const std::size_t VAR_NUM = N*M*LOG_N;	// количество булевых переменных
-char* var = new char[VAR_NUM];					// массив булевых переменных
+const std::size_t N = 9;			// objects count 
+const std::size_t M = 4;			// params  count
+const std::size_t ROW_LENGTH = sqrt(N);	// row length of matrix
+const std::size_t LOG_N = static_cast<int>(std::ceil(std::log2(N)));		// params values count
+const std::size_t VAR_NUM = N*M*LOG_N;	// count of bool var
+char* var = new char[VAR_NUM];					// bool var array
 
 void print()
 {
@@ -60,7 +60,7 @@ void fun(char* varset, int size)
   build(varset, size, 0);
 }
 
-void init(bdd p[M][N][N]) // Заполнение от 0 до 2^logN
+void init(bdd p[M][N][N])
 {
   for (int i = 0; i < M; ++i)
   {
@@ -87,7 +87,7 @@ void cond1(bdd& tree, const bdd p[M][N][N])
   tree &= p[3][4][3];
   tree &= p[2][5][5];
   tree &= p[1][6][5];
-  //доп условия
+  //additional constraints
   tree &= p[3][5][4];
   tree &= p[3][8][6];
   tree &= p[0][2][5];
@@ -102,7 +102,7 @@ void cond2(bdd& tree, const bdd p[M][N][N])
 	tree &= !(p[1][i][7] ^ p[3][i][3]);
 	tree &= !(p[0][i][1] ^ p[1][i][5]);
 	tree &= !(p[1][i][2] ^ p[2][i][5]);
-	//доп условия
+	//additional constraints
 	tree &= !(p[3][i][0] ^ p[1][i][8]);//48
 	tree &= !(p[0][i][1] ^ p[2][i][1]);//8
 
@@ -117,25 +117,25 @@ void cond3(bdd& tree, const bdd p[M][N][N])
   int index;
   for (std::size_t i = 0; i < N; i++)
   {
-	if (i < N - ROW_LENGTH) // нижнее условие без склейки
+	if (i < N - ROW_LENGTH) //down contraint without gluing
 	{
 	  index = i + ROW_LENGTH;
 	  tree &= !(p[1][i][2] ^ p[2][index][4]);
 	  tree &= !(p[0][i][2] ^ p[0][index][7]);
 	}
-	if (i >= N - ROW_LENGTH) //нижнее условие со склейкой
+	if (i >= N - ROW_LENGTH) //down contraint with gluing
 	{
 	  index = i % ROW_LENGTH;
 	  tree &= !(p[1][i][2] ^ p[2][index][4]);
 	  tree &= !(p[0][i][2] ^ p[0][index][7]);
 	}
-	if ((i + 1) % ROW_LENGTH != 0) //правое условие без склейки
+	if ((i + 1) % ROW_LENGTH != 0) //right contraint without gluing
 	{
 	  index = i + 1;
 	  tree &= !(p[0][i][2] ^ p[3][index][4]);
 	  tree &= !(p[0][i][0] ^ p[1][index][1]);
 	}
-	if (i % ROW_LENGTH != 0) //левое условие без склейки
+	if (i % ROW_LENGTH != 0) //left contraint without gluing
 	{
 	  index = i - 1;
 	  tree &= !(p[2][i][7] ^ p[3][index][5]);
@@ -151,7 +151,7 @@ void cond4(bdd& tree, const bdd p[M][N][N])
   int down_right_index;
   for (std::size_t i = 0; i < N; i++)
   {
-	if (((i + 1) % ROW_LENGTH != 0) && (i < N - ROW_LENGTH) && (i >= ROW_LENGTH)) // все соседи
+	if (((i + 1) % ROW_LENGTH != 0) && (i < N - ROW_LENGTH) && (i >= ROW_LENGTH)) // all neighbors
 	{
 	  top_right_index = i + 1 - ROW_LENGTH;
 	  down_right_index = i + 1 + ROW_LENGTH;
@@ -162,7 +162,7 @@ void cond4(bdd& tree, const bdd p[M][N][N])
 	  tree &= !(p[3][i][7] ^ p[0][down_right_index][4]) | !(p[3][i][7] ^ p[0][top_right_index][4]);
 	  tree &= !(p[2][i][6] ^ p[1][down_right_index][7]) | !(p[2][i][6] ^ p[1][top_right_index][7]);
 	}
-	else if ((i < ROW_LENGTH) && ((i + 1) % ROW_LENGTH != 0)) // склейка сверху
+	else if ((i < ROW_LENGTH) && ((i + 1) % ROW_LENGTH != 0)) // top gluing
 	{
 	  top_right_index = i + N - ROW_LENGTH + 1;
 	  down_right_index = i + 1 + ROW_LENGTH;
@@ -173,7 +173,7 @@ void cond4(bdd& tree, const bdd p[M][N][N])
 	  tree &= !(p[3][i][7] ^ p[0][down_right_index][4]) | !(p[3][i][7] ^ p[0][top_right_index][4]);
 	  tree &= !(p[2][i][6] ^ p[1][down_right_index][7]) | !(p[2][i][6] ^ p[1][top_right_index][7]);
 	}
-	else if (i >= N - ROW_LENGTH && ((i + 1) % ROW_LENGTH != 0)) // склейка снизу
+	else if (i >= N - ROW_LENGTH && ((i + 1) % ROW_LENGTH != 0)) // down gluing
 	{
 	  top_right_index = i + 1 - ROW_LENGTH;
 	  down_right_index = i % ROW_LENGTH + 1;
